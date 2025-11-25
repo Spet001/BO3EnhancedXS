@@ -757,10 +757,17 @@ void vnlog(const char* str, va_list ap)
     vsprintf(buf, str, ap);
     strcat(buf, "^7\r\n");
 
+    // Always write to file first if available
+    if (LOGFILE)
+    {
+        fprintf(LOGFILE, "%s\n", buf);
+        fflush(LOGFILE);
+    }
+
     if (IsDebuggerPresent())
     {
         OutputDebugStringA(buf);
-        return;
+        // do not return; still write to file/console if available
     }
 
     if (dbg_is_console_available && dbg_is_attached)
@@ -791,6 +798,12 @@ void vnlog(const char* str, va_list ap)
         edit = FindWindowEx(notepad, NULL, "EDIT", NULL);
     }
     SendMessage(edit, EM_REPLACESEL, TRUE, (LPARAM)buf);
+
+    if (LOGFILE)
+    {
+        fprintf(LOGFILE, "%s\n", buf);
+        fflush(LOGFILE);
+    }
 }
 
 void nlog(const char* str, ...)
@@ -1479,6 +1492,9 @@ MDT_Define_FASTCALL(REBASE(0x1F009E0), Live_SystemInfo_Hook, bool, (int controll
     return true;
 }
 
+// Always return true for content ownership checks to allow MS Store/Xbox users
+// to play on Steam-based servers without requiring Steam ownership.
+// This enables crossplay between legitimate MS Store and Steam copies.
 MDT_Define_FASTCALL(REBASE(0x291F620), Content_HasEntitlementOwnershipByRef_hook, uint8_t, ())
 {
     return 1;
@@ -1528,6 +1544,29 @@ void add_prehooks()
 {
     ALOG("installing prehooks...");
 
+    // Initialize file logger in DLL directory so user can find logs easily
+    if (!LOGFILE)
+    {
+        char modulePath[MAX_PATH] = {0};
+        if (GetModuleFileNameA((HMODULE)REBASE(0), modulePath, sizeof(modulePath)))
+        {
+            char* lastSlash = strrchr(modulePath, '\\');
+            if (lastSlash) *lastSlash = '\0';
+            char logPath[MAX_PATH] = {0};
+            sprintf_s(logPath, "%s\\bo3enhanced.log", modulePath);
+            LOGFILE = fopen(logPath, "a+");
+            if (LOGFILE)
+            {
+                fprintf(LOGFILE, "==== BO3EnhancedXS log started ====\n");
+                fflush(LOGFILE);
+                OutputDebugStringA("BO3EnhancedXS: logging to file");
+                char announce[512];
+                sprintf_s(announce, "BO3EnhancedXS log path: %s", logPath);
+                OutputDebugStringA(announce);
+            }
+        }
+    }
+
     // setup a callspoof trampoline
     chgmem<uint32_t>(SPOOF_TRAMP - 2, 0x27FFFFFF);
 
@@ -1573,7 +1612,7 @@ void add_prehooks()
     security::init();
 
 #if ENABLE_STEAMAPI
-    // initialise the steamapi
+    // initialise the steamapi (optional; uses real Steam identity when available)
     init_steamapi();
 #endif
 
@@ -1948,6 +1987,25 @@ BOOL APIENTRY DllMain( HMODULE hModule,
 
     {
         __thismodule = hModule;
+        // Initialize file logger immediately on process attach
+        if (!LOGFILE)
+        {
+            char modulePath[MAX_PATH] = {0};
+            if (GetModuleFileNameA(hModule, modulePath, sizeof(modulePath)))
+            {
+                char* lastSlash = strrchr(modulePath, '\\');
+                if (lastSlash) *lastSlash = '\0';
+                char logPath[MAX_PATH] = {0};
+                sprintf_s(logPath, "%s\\bo3enhanced.log", modulePath);
+                LOGFILE = fopen(logPath, "a+");
+                if (LOGFILE)
+                {
+                    fprintf(LOGFILE, "==== BO3EnhancedXS log started ====\n");
+                    fflush(LOGFILE);
+                }
+            }
+        }
+        nlog("DllMain attach: logger initialized");
 
 #if REMAP_EXPERIMENT
         if (start_winstore_exe())

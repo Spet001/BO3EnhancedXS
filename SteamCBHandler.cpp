@@ -31,7 +31,21 @@ void CSteamCBHandler::OnRequestEncryptedAppTicket(EncryptedAppTicketResponse_t* 
 	}
 	else
 	{
-		nlog("Failed to get encrypted app ticket (response %i)", pEncryptedAppTicketResponse->m_eResult);
+		nlog("Failed to get encrypted app ticket (response %i), generating dummy ticket for crossplay", pEncryptedAppTicketResponse->m_eResult);
+		
+		// Generate a fake/dummy ticket to allow MS Store/Xbox users to proceed
+		// This bypasses Steam ownership check while maintaining protocol compatibility
+		memset(encryptedAppTicket, 0, sizeof(encryptedAppTicket));
+		
+		// Create a minimal dummy ticket structure (enough to not break base64 encoding)
+		// The actual validation will be bypassed by Content_HasEntitlementOwnershipByRef_hook
+		for (int i = 0; i < 0x80; i++)
+		{
+			encryptedAppTicket[i] = (uint8_t)(rand() & 0xFF);
+		}
+		
+		encryptedAppTicketSize = 0x80;
+		nlog("Generated dummy appticket of size %i for crossplay support", encryptedAppTicketSize);
 	}
 }
 

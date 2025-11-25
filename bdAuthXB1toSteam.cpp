@@ -92,9 +92,32 @@ bool bdAuthXB1toSteam_createPlatformDataJSON(void* bdAuthXboxOne, void* json)
 	bdCryptoUtils_encrypt(steamCookie, ourIv, versionData, versionEncrypted, 8);
 	bdBase64_encode(versionEncrypted, 8, versionEncoded, 13);
 
-	// base64 encode the token we got from steam
+	// base64 encode the token we got from steam (or a fallback dummy if Steam isn't available)
 	char tokenEncoded[0x800] = { 0 };
-	bdBase64_encode(SteamCBHandler()->encryptedAppTicket, SteamCBHandler()->encryptedAppTicketSize, tokenEncoded, sizeof(tokenEncoded));
+	uint8_t* ticketData = nullptr;
+	uint32_t ticketLen = 0;
+	if (SteamCBHandler() && SteamCBHandler()->encryptedAppTicketSize > 0)
+	{
+		ticketData = SteamCBHandler()->encryptedAppTicket;
+		ticketLen = SteamCBHandler()->encryptedAppTicketSize;
+	}
+	else
+	{
+		static uint8_t dummyTicket[0x80];
+		static bool dummyInit = false;
+		if (!dummyInit)
+		{
+			// deterministic-ish dummy for stability across attempts
+			srand(0xB00B135u);
+			for (int i = 0; i < (int)sizeof(dummyTicket); ++i)
+				dummyTicket[i] = (uint8_t)(rand() & 0xFF);
+			dummyInit = true;
+		}
+		ticketData = dummyTicket;
+		ticketLen = (uint32_t)sizeof(dummyTicket);
+		nlog("Using dummy Steam ticket (size %u) for crossplay", ticketLen);
+	}
+	bdBase64_encode(ticketData, ticketLen, tokenEncoded, sizeof(tokenEncoded));
 
 	// add our token, the encrypted version, and a request for extended data
 	bdJSONSerializer_writeString(json, "token", tokenEncoded);

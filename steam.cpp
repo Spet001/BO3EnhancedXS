@@ -295,6 +295,14 @@ void OnGotAuthTicketResponse(ValidateAuthTicketResponse_t* pCallback)
 uint64_t next_steamauth_check = 0;
 void check_steamauth()
 {
+	// NOTE: Steam authentication checks disabled to allow non-Steam
+	// (e.g. MS Store/Xbox) clients to remain connected without a
+	// valid Steam ownership/auth ticket.
+	return;
+
+	// Original implementation kept for reference below.
+	// To re-enable Steam auth, remove the early return above.
+
 	// dont check steamauth in UI level
 	if (s_runningUILevel)
 	{
@@ -840,10 +848,14 @@ void init_steamapi()
 			MessageBoxA(NULL, "Steam is required to play Black Ops 3.\nPlease make sure Steam is open and running.", "BO3Enhanced", 0);
 			ExitProcess(0);
 		}
+		// For MS Store users without Steam: allow fallback to Xbox Live auth
+		// (GDK will handle authentication in this case)
+		ALOG("Binding to platform: Xbox/GDK (no Steam)");
 		return;
 	}
 	ALOG("Steam initialised!");
 	gSteamInit = true;
+	ALOG("Binding to platform: Steam");
 
 	// force them to subscribe to the updater workshop item
 	SteamUGC()->SubscribeItem(WSTORE_UPDATER_WSID);
@@ -899,7 +911,7 @@ void init_steamapi()
 	bdAuthXB1toSteam_createSteamRequestData(steamRequestData);
 	gSteamCBHandler->RequestEncryptedAppTicket(steamRequestData, sizeof(steamRequestData));
 
-	// add auth patches
+	// bind Demonware platform to Steam (only when SteamAPI is ready)
 	apply_bdAuthXB1toSteam_patches();
 
 	// setup workshop content

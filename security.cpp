@@ -6,6 +6,38 @@
 #endif
 
 sec_config security::conf{};
+// Prefer t7patch.conf in CWD; if missing, fall back to the DLL directory
+static char g_patch_config_location[MAX_PATH] = PATCH_CONFIG_LOCATION;
+static const char* get_patch_config_location()
+{
+    // If current path is valid, use it
+    if (security::conf.fs_exists(g_patch_config_location))
+    {
+        return g_patch_config_location;
+    }
+
+    // Build path relative to this DLL module
+    char modPath[MAX_PATH] = {0};
+    HMODULE hm = NULL;
+    if (GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+                           (LPCSTR)&get_patch_config_location, &hm))
+    {
+        if (GetModuleFileNameA(hm, modPath, MAX_PATH))
+        {
+            // strip filename to directory
+            char* lastSlash = strrchr(modPath, '\\');
+            if (lastSlash)
+            {
+                *(lastSlash) = '\0';
+                snprintf(g_patch_config_location, MAX_PATH, "%s\\%s", modPath, PATCH_CONFIG_LOCATION);
+                return g_patch_config_location;
+            }
+        }
+    }
+    // Fallback to default macro path
+    strcpy_s(g_patch_config_location, PATCH_CONFIG_LOCATION);
+    return g_patch_config_location;
+}
 
 #if ENABLE_STEAMAPI
 uint64_t next_update_friendslist_time = 0;
@@ -152,9 +184,10 @@ DWORD WINAPI watch_settings_updates(_In_ LPVOID lpParameter)
 {
     for (;;)
     {
-        if (security::conf.update_watcher_time(PATCH_CONFIG_LOCATION))
+        const char* path = get_patch_config_location();
+        if (security::conf.update_watcher_time(path))
         {
-            security::conf.loadfrom(PATCH_CONFIG_LOCATION);
+            security::conf.loadfrom(path);
         }
         Sleep(1000);
     }
@@ -163,13 +196,14 @@ DWORD WINAPI watch_settings_updates(_In_ LPVOID lpParameter)
 
 void load_settings_initial()
 {
-    if (!security::conf.fs_exists(PATCH_CONFIG_LOCATION))
+    const char* path = get_patch_config_location();
+    if (!security::conf.fs_exists(path))
     {
-        security::conf.saveto(PATCH_CONFIG_LOCATION);
+        security::conf.saveto(path);
     }
     else
     {
-        security::conf.loadfrom(PATCH_CONFIG_LOCATION);
+        security::conf.loadfrom(path);
     }
 }
 
