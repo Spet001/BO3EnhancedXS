@@ -6,10 +6,10 @@
 #define WSTORE_UPDATER_WSID 3413662211
 #define WSTORE_UPDATER_FILENAME "wsupdate.ff"
 #define WSTORE_UPDATER_DEST_FILENAME "wsupdate.next"
-#define VERSION_STRING "BO3Enhanced v1.16"
+#define VERSION_STRING "BO3Enhanced TEST VERSION"
 
 // If true, is development environment (printing, console, etc)
-#define IS_DEVELOPMENT 0
+#define IS_DEVELOPMENT 1
 
 // If true, enables the steamapi
 #define ENABLE_STEAMAPI 1

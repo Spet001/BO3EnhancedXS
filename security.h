@@ -32,6 +32,9 @@ namespace security
 	bool handle_exception(PEXCEPTION_RECORD ExceptionRecord, PCONTEXT ContextRecord);
 
     uint64_t canon_hash64(const char* input);
+    
+		// Retrieve a string config value by key (returns nullptr if not found)
+		const char* get_config_value(const char* key);
 }
 
 #if DEBUG_SECURITY

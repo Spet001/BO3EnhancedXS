@@ -1204,10 +1204,11 @@ MDT_Define_FASTCALL(REBASE(0x1E54EF0), lua_pcall_hook, uint32_t, (lua_State* s, 
     const char* sourceData = NULL;
     if ((uint64_t)_ReturnAddress() == REBASE(0x202C560)) // ui.uieditor.conditions
     {
+        ALOG("lua_pcall_hook: injecting conditions block (IsServerBrowserEnabled=true) at RA=%llx", (uint64_t)_ReturnAddress());
 #if DWINVENTORY_UNLOCK_ALL
         sourceData = 
 "EnableGlobals()\n\
-function IsServerBrowserEnabled() return false end\n\
+function IsServerBrowserEnabled() return true end\n\
 Engine.IsWeaponOptionLockedEntitlement = function() return false end\n\
 local defaultEmblemsCached = nil\n\
 local function getAllDefaults()\n\
@@ -1236,20 +1237,21 @@ end\n\
 return oldGBFCN(arg0, arg1)\n\
 end";
 #else
-        sourceData = "EnableGlobals()\n\
-function IsServerBrowserEnabled() return false end";
+    sourceData = "EnableGlobals()\n\
+function IsServerBrowserEnabled() return true end";
 #endif
     }
 
 #if DWINVENTORY_UNLOCK_ALL
     if ((uint64_t)_ReturnAddress() == REBASE(0x202CB5F)) // ui.ffotd_tu32
     {
+        ALOG("lua_pcall_hook: injecting ffotd_tu32 unlocks at RA=%llx", (uint64_t)_ReturnAddress());
         sourceData =
             "EnableGlobals()\n\
 require(\"ui.t7.utility.storeutility\")\n\
 CoD.BlackMarketUtility.IsItemLocked = function() return false end\n\
-CoD.StoreUtility.IsInventoryItemPurchased = function return true end\n\
-CoD.StoreUtility.IsInventoryItemVisible = function return true end\n\
+CoD.StoreUtility.IsInventoryItemPurchased = function() return true end\n\
+CoD.StoreUtility.IsInventoryItemVisible = function() return true end\n\
 CoD.SpecialCallingCards = {}";
     }
 #endif
@@ -1538,6 +1540,7 @@ MDT_Define_FASTCALL(REBASE(0x13ED0D0), EveryFrameHook, void, ())
 
 //defined in steam.cpp
 extern void init_steamapi();
+namespace server_browser { void init(); }
 
 __int64 old_IsProcessorFeaturePresent = 0;
 void add_prehooks()
@@ -1610,6 +1613,9 @@ void add_prehooks()
 
     // MUST BE INITIALIZED BEFORE STEAM!!!!!!!
     security::init();
+
+    // Initialize server browser/QOL scaffolding (reads config, loads custom list)
+    server_browser::init();
 
 #if ENABLE_STEAMAPI
     // initialise the steamapi (optional; uses real Steam identity when available)

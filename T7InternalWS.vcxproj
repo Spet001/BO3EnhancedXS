@@ -80,6 +80,7 @@
     <ClInclude Include="xuid.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="server_browser.h" />
     <ClCompile Include="bdAuthXB1toSteam.cpp" />
     <ClCompile Include="dllmain.cpp" />
     <ClCompile Include="hks.cpp" />
@@ -92,6 +93,7 @@
     <ClCompile Include="SteamCBHandler.cpp" />
     <ClCompile Include="steamugc.cpp" />
     <ClCompile Include="xuid.cpp" />
+    <ClCompile Include="server_browser.cpp" />
   </ItemGroup>
   <ItemGroup>
     <MASM Include="__callspoof.asm">

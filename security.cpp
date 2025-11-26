@@ -413,3 +413,45 @@ void sec_config::saveto(const char* path)
     outfile.close();
     update_watcher_time(path);
 }
+
+namespace security {
+    // naive getter for simple key=value pairs already parsed; supports known keys and a generic file re-read for unknown ones
+    const char* get_config_value(const char* key)
+    {
+        if (!key) return nullptr;
+        // Fast path for known keys
+        if (strcmp(key, "playername") == 0) return conf.playername;
+        if (strcmp(key, "isfriendsonly") == 0) return conf.is_friends_only ? "1" : "0";
+        if (strcmp(key, "networkpassword") == 0) return ""; // password not stored as plaintext
+
+        // For new keys, try reading a line from t7patch.conf next to DLL
+        static char outBuf[1024];
+        outBuf[0] = 0;
+
+        char modulePath[MAX_PATH] = {0};
+        if (!GetModuleFileNameA((HMODULE)REBASE(0), modulePath, sizeof(modulePath))) return nullptr;
+        char* lastSlash = strrchr(modulePath, '\\');
+        if (lastSlash) *lastSlash = '\0';
+        char confPath[MAX_PATH] = {0};
+        sprintf_s(confPath, "%s\\t7patch.conf", modulePath);
+
+        std::ifstream infile;
+        infile.open(confPath, std::ofstream::in | std::ofstream::binary);
+        if (!infile.is_open()) return nullptr;
+        std::string line;
+        while (!std::getline(infile, line).eof()) {
+            auto sep = line.find('=');
+            if (sep == std::string::npos || sep >= (line.length() - 1)) continue;
+            auto token = line.substr(0, sep);
+            auto val = line.substr(sep + 1);
+            if (token == key) {
+                if (val.length() >= sizeof(outBuf)) val = val.substr(0, sizeof(outBuf)-1);
+                strcpy_s(outBuf, val.c_str());
+                infile.close();
+                return outBuf;
+            }
+        }
+        infile.close();
+        return nullptr;
+    }
+}
