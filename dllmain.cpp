@@ -13,6 +13,7 @@
 #include "steam.h"
 #endif
 #include "security.h"
+#include "server_browser.h"
 #include <direct.h>
 
 // FUTURE MAYBE: steamchat (requires steamlobbies)
@@ -1209,7 +1210,43 @@ MDT_Define_FASTCALL(REBASE(0x1E54EF0), lua_pcall_hook, uint32_t, (lua_State* s, 
         sourceData = 
 "EnableGlobals()\n\
 function IsServerBrowserEnabled() return true end\n\
+\n\
+-- Weapon Unlocks\n\
 Engine.IsWeaponOptionLockedEntitlement = function() return false end\n\
+Engine.IsItemLocked = function() return false end\n\
+Engine.IsLootItemLocked = function() return false end\n\
+Engine.IsAttachmentLocked = function() return false end\n\
+Engine.IsAttachmentNew = function() return false end\n\
+Engine.GetItemUnlockLevel = function() return 0 end\n\
+Engine.IsWeaponLocked = function() return false end\n\
+\n\
+-- Specialist Unlocks\n\
+Engine.IsHeroItemLocked = function() return false end\n\
+Engine.IsHeroAbilityLocked = function() return false end\n\
+Engine.IsSpecialistLocked = function() return false end\n\
+\n\
+-- Camo/Reticle Unlocks\n\
+Engine.IsCamoLocked = function() return false end\n\
+Engine.IsReticleLocked = function() return false end\n\
+Engine.IsReticleNew = function() return false end\n\
+Engine.IsCamoNew = function() return false end\n\
+\n\
+-- Calling Card Unlocks\n\
+Engine.IsCallingCardLocked = function() return false end\n\
+Engine.IsBackgroundLocked = function() return false end\n\
+Engine.IsEmblemLocked = function() return false end\n\
+Engine.IsEmblemBackgroundLocked = function() return false end\n\
+\n\
+-- Challenge/Prestige Unlocks\n\
+Engine.IsChallengeLocked = function() return false end\n\
+Engine.IsPrestigeItemLocked = function() return false end\n\
+\n\
+-- Gesture/Taunt Unlocks\n\
+Engine.IsGestureLocked = function() return false end\n\
+Engine.IsTauntLocked = function() return false end\n\
+Engine.IsGestureNew = function() return false end\n\
+\n\
+-- Emblem Unlocks\n\
 local defaultEmblemsCached = nil\n\
 local function getAllDefaults()\n\
 if defaultEmblemsCached ~= nil then return defaultEmblemsCached end\n\
@@ -1237,7 +1274,7 @@ end\n\
 return oldGBFCN(arg0, arg1)\n\
 end";
 #else
-    sourceData = "EnableGlobals()\n\
+        sourceData = "EnableGlobals()\n\
 function IsServerBrowserEnabled() return true end";
 #endif
     }
@@ -1249,9 +1286,17 @@ function IsServerBrowserEnabled() return true end";
         sourceData =
             "EnableGlobals()\n\
 require(\"ui.t7.utility.storeutility\")\n\
+\n\
+-- Black Market/Store Unlocks\n\
 CoD.BlackMarketUtility.IsItemLocked = function() return false end\n\
+CoD.BlackMarketUtility.IsItemNew = function() return false end\n\
+CoD.BlackMarketUtility.IsItemPurchased = function() return true end\n\
 CoD.StoreUtility.IsInventoryItemPurchased = function() return true end\n\
 CoD.StoreUtility.IsInventoryItemVisible = function() return true end\n\
+CoD.StoreUtility.IsInventoryItemLocked = function() return false end\n\
+CoD.StoreUtility.IsInventoryItemNew = function() return false end\n\
+\n\
+-- Calling Cards\n\
 CoD.SpecialCallingCards = {}";
     }
 #endif
@@ -1278,6 +1323,35 @@ int Lua_ResetEmblemsCache(void* s)
     return 1;
 }
 
+int Lua_GetServerList(void* s)
+{
+    ALOG("Lua_GetServerList called");
+    // For now, just return an empty table
+    // TODO: properly implement this with HKS API for table creation
+    return 0;
+}
+
+int Lua_RefreshServers(void* s)
+{
+    ALOG("Lua_RefreshServers called");
+    server_browser::refresh_from_game();
+    return 0;
+}
+
+int Lua_JoinServer(void* s)
+{
+    ALOG("Lua_JoinServer called");
+    // TODO: extract IP from Lua stack and call server_browser::join()
+    return 0;
+}
+
+int Lua_AddCustomServer(void* s)
+{
+    ALOG("Lua_AddCustomServer called");
+    // TODO: extract server info from Lua table and call server_browser::add_custom_server()
+    return 0;
+}
+
 MDT_Define_FASTCALL(PTR_hksI_openlib, hksI_openlib_hook, void, (lua_State* s, const char* libname, const luaL_Reg l[], int nup, int isHksFunc))
 {
     if ((uint64_t)_ReturnAddress() == REBASE(0x1E49523)) // just some random call to openlib, only need it once
@@ -1285,6 +1359,10 @@ MDT_Define_FASTCALL(PTR_hksI_openlib, hksI_openlib_hook, void, (lua_State* s, co
         const luaL_Reg lib[] =
         {
             {"ResetEmblemsCache", Lua_ResetEmblemsCache},
+            {"GetServerList", Lua_GetServerList},
+            {"RefreshServers", Lua_RefreshServers},
+            {"JoinServer", Lua_JoinServer},
+            {"AddCustomServer", Lua_AddCustomServer},
             {nullptr, nullptr}
         };
 
