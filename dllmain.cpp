@@ -40,7 +40,7 @@ EXTERN_C const PIMAGE_TLS_CALLBACK tls_callback_func = tls_callback;
 #endif
 
 bool is_remapped_exe = false;
-bool dbg_is_console_available = false;
+bool dbg_is_console_available = true;
 bool dbg_is_attached = false;
 HANDLE dbg_hWriteConsole = NULL, dbg_hReadConsole = NULL;
 
@@ -1211,35 +1211,53 @@ MDT_Define_FASTCALL(REBASE(0x1E54EF0), lua_pcall_hook, uint32_t, (lua_State* s, 
 "EnableGlobals()\n\
 function IsServerBrowserEnabled() return true end\n\
 \n\
--- Weapon Unlocks\n\
+-- Entitlement Override (CRITICAL)\n\
+Engine.IsEntitlementValid = function(entitlementId) return true end\n\
+Engine.GetEntitlementInfo = function(itemId, entitlementType) return {entitled=true, locked=false, new=false, count=999} end\n\
+\n\
+-- Weapon Token Bypass\n\
 Engine.IsWeaponOptionLockedEntitlement = function() return false end\n\
+Engine.DoesPlayerHaveWeapon = function(weaponId) return true end\n\
+Engine.GetWeaponTokenCount = function(weaponId) return 999 end\n\
+Engine.GetPlayerWeaponTokenCount = function(playerIndex, weaponId) return 999 end\n\
+Engine.GetWeaponUnlockCost = function(weaponId) return 0 end\n\
 Engine.IsItemLocked = function() return false end\n\
 Engine.IsLootItemLocked = function() return false end\n\
-Engine.IsAttachmentLocked = function() return false end\n\
-Engine.IsAttachmentNew = function() return false end\n\
-Engine.GetItemUnlockLevel = function() return 0 end\n\
 Engine.IsWeaponLocked = function() return false end\n\
+Engine.GetItemUnlockLevel = function() return 0 end\n\
 \n\
--- Specialist Unlocks\n\
-Engine.IsHeroItemLocked = function() return false end\n\
-Engine.IsHeroAbilityLocked = function() return false end\n\
+-- Attachment Unlock Bypass\n\
+Engine.IsAttachmentLocked = function(weaponId, attachmentId) return false end\n\
+Engine.DoesPlayerHaveAttachment = function(weaponId, attachmentId) return true end\n\
+Engine.GetAttachmentTokenCount = function(weaponId, attachmentId) return 999 end\n\
+Engine.IsAttachmentNew = function() return false end\n\
+\n\
+-- Loot & Black Market\n\
+Engine.GetLootTokenCount = function(lootItemId) return 999 end\n\
+\n\
+-- Specialist/Hero Unlocks\n\
+Engine.IsHeroItemLocked = function(heroId, itemId) return false end\n\
+Engine.IsHeroAbilityLocked = function(heroId, abilityId) return false end\n\
+Engine.GetHeroTokenCount = function(heroId, itemId) return 999 end\n\
 Engine.IsSpecialistLocked = function() return false end\n\
 \n\
--- Camo/Reticle Unlocks\n\
-Engine.IsCamoLocked = function() return false end\n\
-Engine.IsReticleLocked = function() return false end\n\
-Engine.IsReticleNew = function() return false end\n\
-Engine.IsCamoNew = function() return false end\n\
-\n\
--- Calling Card Unlocks\n\
-Engine.IsCallingCardLocked = function() return false end\n\
+-- Cosmetic Unlocks\n\
+Engine.IsCamoLocked = function(weaponId, camoId) return false end\n\
+Engine.IsReticleLocked = function(reticleId) return false end\n\
+Engine.IsCallingCardLocked = function(cardId) return false end\n\
 Engine.IsBackgroundLocked = function() return false end\n\
 Engine.IsEmblemLocked = function() return false end\n\
 Engine.IsEmblemBackgroundLocked = function() return false end\n\
+Engine.GetCosmeticTokenCount = function(cosmeticId) return 999 end\n\
+Engine.GetPlayerCallingCardIndex = function() return 0 end\n\
+Engine.GetCallingCardUnlockData = function() return true end\n\
+Engine.IsReticleNew = function() return false end\n\
+Engine.IsCamoNew = function() return false end\n\
 \n\
--- Challenge/Prestige Unlocks\n\
-Engine.IsChallengeLocked = function() return false end\n\
-Engine.IsPrestigeItemLocked = function() return false end\n\
+-- Challenge & Prestige Bypass\n\
+Engine.IsChallengeLocked = function(challengeId) return false end\n\
+Engine.IsPrestigeItemLocked = function(prestigeId) return false end\n\
+Engine.GetChallengeTokenCount = function(challengeId) return 999 end\n\
 \n\
 -- Gesture/Taunt Unlocks\n\
 Engine.IsGestureLocked = function() return false end\n\
@@ -1287,11 +1305,68 @@ function IsServerBrowserEnabled() return true end";
             "EnableGlobals()\n\
 require(\"ui.t7.utility.storeutility\")\n\
 \n\
+-- Entitlement Override (CRITICAL)\n\
+Engine.IsEntitlementValid = function(entitlementId) return true end\n\
+Engine.GetEntitlementInfo = function(itemId, entitlementType) return {entitled=true, locked=false, new=false, count=999} end\n\
+\n\
+-- Weapon Token Bypass\n\
+Engine.IsWeaponOptionLockedEntitlement = function() return false end\n\
+Engine.DoesPlayerHaveWeapon = function(weaponId) return true end\n\
+Engine.GetWeaponTokenCount = function(weaponId) return 999 end\n\
+Engine.GetPlayerWeaponTokenCount = function(playerIndex, weaponId) return 999 end\n\
+Engine.GetWeaponUnlockCost = function(weaponId) return 0 end\n\
+Engine.IsItemLocked = function() return false end\n\
+Engine.IsLootItemLocked = function() return false end\n\
+Engine.IsWeaponLocked = function() return false end\n\
+Engine.GetItemUnlockLevel = function() return 0 end\n\
+\n\
+-- Attachment Unlock Bypass\n\
+Engine.IsAttachmentLocked = function(weaponId, attachmentId) return false end\n\
+Engine.DoesPlayerHaveAttachment = function(weaponId, attachmentId) return true end\n\
+Engine.GetAttachmentTokenCount = function(weaponId, attachmentId) return 999 end\n\
+Engine.IsAttachmentNew = function() return false end\n\
+\n\
+-- Loot & Black Market\n\
+Engine.GetLootTokenCount = function(lootItemId) return 999 end\n\
+\n\
+-- Specialist/Hero Unlocks\n\
+Engine.IsHeroItemLocked = function(heroId, itemId) return false end\n\
+Engine.IsHeroAbilityLocked = function(heroId, abilityId) return false end\n\
+Engine.GetHeroTokenCount = function(heroId, itemId) return 999 end\n\
+Engine.IsSpecialistLocked = function() return false end\n\
+\n\
+-- Cosmetic Unlocks\n\
+Engine.IsCamoLocked = function(weaponId, camoId) return false end\n\
+Engine.IsReticleLocked = function(reticleId) return false end\n\
+Engine.IsCallingCardLocked = function(cardId) return false end\n\
+Engine.IsBackgroundLocked = function() return false end\n\
+Engine.IsEmblemLocked = function() return false end\n\
+Engine.IsEmblemBackgroundLocked = function() return false end\n\
+Engine.GetCosmeticTokenCount = function(cosmeticId) return 999 end\n\
+Engine.GetPlayerCallingCardIndex = function() return 0 end\n\
+Engine.GetCallingCardUnlockData = function() return true end\n\
+Engine.IsReticleNew = function() return false end\n\
+Engine.IsCamoNew = function() return false end\n\
+\n\
+-- Challenge & Prestige Bypass\n\
+Engine.IsChallengeLocked = function(challengeId) return false end\n\
+Engine.IsPrestigeItemLocked = function(prestigeId) return false end\n\
+Engine.GetChallengeTokenCount = function(challengeId) return 999 end\n\
+\n\
+-- Gesture/Taunt Unlocks\n\
+Engine.IsGestureLocked = function() return false end\n\
+Engine.IsTauntLocked = function() return false end\n\
+Engine.IsGestureNew = function() return false end\n\
+\n\
 -- Black Market/Store Unlocks\n\
-CoD.BlackMarketUtility.IsItemLocked = function() return false end\n\
+CoD.BlackMarketUtility.IsItemLocked = function(self, itemId) return false end\n\
+CoD.BlackMarketUtility.GetItemCount = function(self, itemId) return 999 end\n\
+CoD.BlackMarketUtility.GetItemTokenCount = function(self, itemId) return 999 end\n\
 CoD.BlackMarketUtility.IsItemNew = function() return false end\n\
 CoD.BlackMarketUtility.IsItemPurchased = function() return true end\n\
-CoD.StoreUtility.IsInventoryItemPurchased = function() return true end\n\
+CoD.StoreUtility.IsInventoryItemPurchased = function(self, itemId) return true end\n\
+CoD.StoreUtility.GetInventoryItemCost = function(self, itemId) return 0 end\n\
+CoD.StoreUtility.GetInventoryItemCount = function(self, itemId) return 999 end\n\
 CoD.StoreUtility.IsInventoryItemVisible = function() return true end\n\
 CoD.StoreUtility.IsInventoryItemLocked = function() return false end\n\
 CoD.StoreUtility.IsInventoryItemNew = function() return false end\n\
@@ -1605,6 +1680,59 @@ MDT_Define_FASTCALL(REBASE(0x1EED4E0), FS_FindXZone_hook, const char*, (const ch
     return MDT_ORIGINAL(FS_FindXZone_hook, (filename));
 }
 
+// DDL Hooks from Ghidra (MS Store) - using REBASE for proper address calculation
+MDT_Define_FASTCALL(REBASE(0x14E34D0), DDL_MoveToName_hook, uint64_t, (uint64_t fromState, char* toState, const char* name))
+{
+    return MDT_ORIGINAL(DDL_MoveToName_hook, (fromState, toState, name));
+}
+
+MDT_Define_FASTCALL(REBASE(0x25E71D0), DDL_MoveToPath_hook, uint64_t, (uint64_t fromState, char* toState, int depth, const char** path))
+{
+    return MDT_ORIGINAL(DDL_MoveToPath_hook, (fromState, toState, depth, path));
+}
+
+MDT_Define_FASTCALL(REBASE(0x25E7320), DDL_GetUInt_hook, uint64_t, (char* param_1, uint64_t* param_2))
+{
+#if DWINVENTORY_UNLOCK_ALL
+    uint64_t result = MDT_ORIGINAL(DDL_GetUInt_hook, (param_1, param_2));
+    
+    // Log para debug
+    static int logCount = 0;
+    if (logCount++ < 50) // Limita logs para não spammar
+    {
+        ALOG("DDL_GetUInt called: result = %llu", result);
+    }
+    
+    return result;
+#else
+    return MDT_ORIGINAL(DDL_GetUInt_hook, (param_1, param_2));
+#endif
+}
+
+MDT_Define_FASTCALL(REBASE(0x25E7290), DDL_SetUInt_hook, uint64_t, (char* param_1, uint64_t* param_2, uint64_t value))
+{
+#if DWINVENTORY_UNLOCK_ALL
+    static int logCount = 0;
+    if (logCount++ < 30)
+    {
+        ALOG("DDL_SetUInt called: value = %llu", value);
+    }
+#endif
+    return MDT_ORIGINAL(DDL_SetUInt_hook, (param_1, param_2, value));
+}
+
+MDT_Define_FASTCALL(REBASE(0x1FA52B0), LiveStats_Core_GetDDLContext_hook, uint64_t, (uint32_t ControllerIndex, int mode))
+{
+#if DWINVENTORY_UNLOCK_ALL
+    static int logCount = 0;
+    if (logCount++ < 10)
+    {
+        ALOG("LiveStats_Core_GetDDLContext called: ControllerIndex=%u, mode=%d", ControllerIndex, mode);
+    }
+#endif
+    return MDT_ORIGINAL(LiveStats_Core_GetDDLContext_hook, (ControllerIndex, mode));
+}
+
 MDT_Define_FASTCALL(REBASE(0x1FA17D0), LiveStats_AreStatsDeltasValid_hook, uint8_t, ())
 {
     return 1;
@@ -1670,6 +1798,14 @@ void add_prehooks()
     MDT_Activate(Live_SystemInfo_Hook);
     MDT_Activate(Content_HasEntitlementOwnershipByRef_hook);
     MDT_Activate(FS_FindXZone_hook);
+    
+    // DDL hooks for inventory unlock (MS Store)
+    MDT_Activate(DDL_MoveToName_hook);
+    MDT_Activate(DDL_MoveToPath_hook);
+    MDT_Activate(DDL_GetUInt_hook);
+    MDT_Activate(DDL_SetUInt_hook);
+    MDT_Activate(LiveStats_Core_GetDDLContext_hook);
+    
     MDT_Activate(LiveStats_AreStatsDeltasValid_hook);
     MDT_Activate(hksI_openlib_hook);
     MDT_Activate(EveryFrameHook);
