@@ -1,0 +1,158 @@
+
+╔════════════════════════════════════════════════════════════════════════════════════════════════╗
+║            CRITICAL BO3 MS STORE UNLOCK SYSTEM FINDINGS - FROM GHIDRA ANALYSIS                ║
+╚════════════════════════════════════════════════════════════════════════════════════════════════╝
+
+1. UNLOCK TOKEN BASE DATA STRUCTURE
+   ─────────────────────────────────
+   
+   Address: DAT_1586cd218 (Global array of player stats)
+   Structure: (&DAT_1586cd218)[param_2] = player indexed data
+   
+   Key function that reads token count:
+   → FUN_1421348e0((&DAT_1586cd218)[param_2], "unlockTokensCount", 1, 0);
+     
+   This function is called at line 233376 in FUN_140207070
+
+
+2. KEY OFFSET PATTERNS FOUND
+   ─────────────────────────────
+   
+   Most frequently used offsets in struct operations:
+   • 0x14 : 5946 occurrences
+   • 0x30 : 5796 occurrences  
+   • 0x40 : 4774 occurrences
+   • 0x24 : 4675 occurrences
+   • 0x1c : 4620 occurrences
+   • 0x58 : 4214 occurrences
+   • 0x50 : 3757 occurrences
+   
+   These indicate structure field offsets frequently accessed in inventory operations
+
+
+3. CRITICAL FUNCTIONS FOR UNLOCKING
+   ──────────────────────────────────
+   
+   a) FUN_1401fb100 (Lines 233120-233215)
+      Purpose: Count unlock tokens available
+      Reads: "unlockTokensCount" from player stats
+      Uses: DDL navigation (FUN_1425e71d0, FUN_1425e7a30)
+   
+   b) AddUnlockToken Functions (Lines 2792833+)
+      - AddUnlockToken_weapon: Add tokens for weapons
+      - AddUnlockToken_attachment: Add tokens for attachments
+      Purpose: Grant unlock tokens to player
+      Method: FUN_1416b32e0() writes to stat path
+   
+   c) GiveUnlockToken (Lines 2792879+)
+      Purpose: Main function to give unlock tokens
+      Error handling: "GiveUnlockToken: Unable to locate stat for path: unlocks"
+      Returns: Token count that was given
+
+
+4. DDL LAYER FUNCTIONS IDENTIFIED
+   ───────────────────────────────
+   
+   FUN_1425e71d0 - DDL_MoveToPath (Navigate to stat path)
+   FUN_1425e7a30 - DDL_GetValue (Read value from current path)
+   FUN_1421348e0 - DDL_GetUInt (Read uint from stat path)
+   FUN_1416b32e0 - Write/Set value to stat path
+   FUN_141faded0 - Get player data context
+   FUN_1414e34d0 - DDL_MoveToName (Navigate by name)
+
+
+5. STAT PATHS DISCOVERED
+   ──────────────────────
+   
+   "playerstatsbymap"      → Player stats organized by map
+   "unlocks"               → Unlock items container
+   "unlockTokensCount"     → Count of available tokens
+   "unlockTokenCount_weapon"      → Weapon-specific tokens
+   "unlockTokenCount_attachment"  → Attachment-specific tokens
+   "permanentUnlockTokensCount"   → Permanent token count (line 5058930)
+
+
+6. MEMORY STRUCTURE HINTS
+   ──────────────────────
+   
+   Line 233166: *(int *)(DAT_148f8cd98 + 0xe0b78 + lVar8)  
+   → Offset 0xe0b78 used for stat storage
+   
+   Line 233182: *(int *)(DAT_148f8cd98 + 0xe0b80 + lVar8)
+   → Offset 0xe0b80 used for stat array base
+   
+   Line 233382-383:
+   *(int *)(&DAT_1586cd228 + uVar14 * 0x28)   → Entry type (value 3 = result)
+   *(uint *)(&DAT_1586cd230 + uVar14 * 0x28)  → Entry data
+   
+   Stride of 0x28 (40 bytes) suggests array of stat entries
+
+
+7. KNOWN WORKING BYPASS APPROACH
+   ──────────────────────────────
+   
+   The DDL layer (Detours hooks) works because:
+   ✓ FUN_1425e71d0 is where all stat lookups go
+   ✓ FUN_1425e7a30 retrieves values
+   ✓ FUN_1421348e0 directly queries unlockTokensCount
+   
+   Expected hook effectiveness:
+   ✓ Intercepting FUN_1421348e0("unlockTokensCount") → Return 999
+   ✗ Problem: xgameruntime.dll validates backend before accepting tokens
+
+
+8. CHEAT ENGINE SCANNING STRATEGY
+   ────────────────────────────────
+   
+   Base address candidates:
+   • DAT_1586cd218 - Player stats array
+   • DAT_148f8cd98 - Stat storage area
+   • Look for pattern: structure with 0x28-byte entries
+   
+   Unique scan values:
+   • Search for consecutive pairs like offset check (0xe0b78, 0xe0b80)
+   • Pointer chains: Find references to 0x1586cd218 in memory
+   • Array stride: Look for 0x28-byte aligned allocations
+
+
+9. NEXT STEPS FOR EXPLOITATION
+   ───────────────────────────
+   
+   Option 1 (Direct Memory Write):
+   • Use Cheat Engine to find DAT_1586cd218 base address
+   • Write 999 to offset for unlockTokensCount
+   • Offset pattern: structure is 0x28 bytes per entry
+   
+   Option 2 (Hook Interception):
+   • Place detour on FUN_1421348e0 (DDL_GetUInt)
+   • Check if query is for "unlockTokensCount"
+   • Return 999 instead of backend value
+   • ISSUE: xgameruntime.dll still validates after
+   
+   Option 3 (Backend Bypass):
+   • Find where xgameruntime.dll validates tokens
+   • Bypass the validation check instead of spoofing values
+
+
+10. CODE REFERENCES FOR STUDY
+    ─────────────────────────
+    
+    See detailed files in ./analysis/:
+    • CRITICAL_UNLOCK_FUNCTIONS.txt - Full function source code
+    • DETAILED_UNLOCKS.txt - isItemLocked and unlock patterns
+    • RESULTS.txt - Complete token/unlock reference list
+
+
+════════════════════════════════════════════════════════════════════════════════════════════════════
+
+KEY INSIGHT:
+The token system uses a DDL layer that can be hooked, BUT it's backed by Xbox Games Runtime
+validation. Simply returning 999 from DDL_GetUInt won't work because xgameruntime.dll checks
+the backend database before accepting items.
+
+SOLUTION DIRECTION:
+Either:
+1. Find and hook the xgameruntime.dll validation function
+2. Find the actual memory location of the token count and modify it directly
+3. Intercept the backend response before xgameruntime validates it
+

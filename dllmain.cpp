@@ -1681,45 +1681,133 @@ MDT_Define_FASTCALL(REBASE(0x1EED4E0), FS_FindXZone_hook, const char*, (const ch
 }
 
 // DDL Hooks from Ghidra (MS Store) - using REBASE for proper address calculation
+// Track last DDL field accessed (thread-local for safety)
+thread_local char g_lastDDLName[128] = {0};
+thread_local char g_lastDDLPath[256] = {0};
+
 MDT_Define_FASTCALL(REBASE(0x14E34D0), DDL_MoveToName_hook, uint64_t, (uint64_t fromState, char* toState, const char* name))
 {
+    if (name)
+    {
+        strncpy(g_lastDDLName, name, sizeof(g_lastDDLName) - 1);
+        g_lastDDLName[sizeof(g_lastDDLName) - 1] = '\0';
+    }
+#if DWINVENTORY_UNLOCK_ALL
+    static int logCountMoveName = 0;
+    if (logCountMoveName++ < 25 && name)
+    {
+        ALOG("DDL_MoveToName: %s", name);
+    }
+#endif
     return MDT_ORIGINAL(DDL_MoveToName_hook, (fromState, toState, name));
 }
 
 MDT_Define_FASTCALL(REBASE(0x25E71D0), DDL_MoveToPath_hook, uint64_t, (uint64_t fromState, char* toState, int depth, const char** path))
 {
+    if (path && depth > 0 && depth < 64)
+    {
+        g_lastDDLPath[0] = '\0';
+        for (int i = 0; i < depth; ++i)
+        {
+            const char* seg = path[i];
+            if (!seg) break;
+            // ensure segment is reasonably sized
+            size_t seglen = strnlen(seg, 128);
+            if (seglen == 0) continue;
+            size_t curLen = strlen(g_lastDDLPath);
+            if (curLen + seglen + 2 < sizeof(g_lastDDLPath))
+            {
+                if (curLen > 0) strcat_s(g_lastDDLPath, sizeof(g_lastDDLPath), "/");
+                strncat_s(g_lastDDLPath, sizeof(g_lastDDLPath), seg, seglen);
+            }
+        }
+#if DWINVENTORY_UNLOCK_ALL
+        static int logCountMovePath = 0;
+        if (logCountMovePath++ < 20)
+        {
+            ALOG("DDL_MoveToPath: %s", g_lastDDLPath);
+        }
+#endif
+    }
     return MDT_ORIGINAL(DDL_MoveToPath_hook, (fromState, toState, depth, path));
 }
 
 MDT_Define_FASTCALL(REBASE(0x25E7320), DDL_GetUInt_hook, uint64_t, (char* param_1, uint64_t* param_2))
 {
 #if DWINVENTORY_UNLOCK_ALL
-    uint64_t result = MDT_ORIGINAL(DDL_GetUInt_hook, (param_1, param_2));
-    
-    // Log para debug
-    static int logCount = 0;
-    if (logCount++ < 50) // Limita logs para não spammar
+    // If reading known token fields, force large value
+    auto contains = [](const char* hay, const char* needle) -> bool {
+        if (!hay || !needle) return false;
+        size_t nlen = strlen(needle);
+        size_t hlen = strlen(hay);
+        if (nlen == 0 || hlen == 0 || nlen > hlen) return false;
+        for (size_t i = 0; i + nlen <= hlen; ++i)
+        {
+            bool match = true;
+            for (size_t j = 0; j < nlen; ++j)
+            {
+                char a = hay[i + j];
+                char b = needle[j];
+                if (a >= 'A' && a <= 'Z') a = (char)(a + 32);
+                if (b >= 'A' && b <= 'Z') b = (char)(b + 32);
+                if (a != b) { match = false; break; }
+            }
+            if (match) return true;
+        }
+        return false;
+    };
+
+    bool isTokenField = false;
+    if (g_lastDDLName[0] != '\0')
     {
-        ALOG("DDL_GetUInt called: result = %llu", result);
+        if (contains(g_lastDDLName, "token") || contains(g_lastDDLName, "unlock"))
+            isTokenField = true;
     }
-    
+    if (g_lastDDLPath[0] != '\0')
+    {
+        if (contains(g_lastDDLPath, "token") || contains(g_lastDDLPath, "unlock"))
+            isTokenField = true;
+        if (contains(g_lastDDLPath, "mp/PlayerData/UnlockTokens"))
+            isTokenField = true;
+    }
+    // Additional common fields observed in CoD DDLs
+    if (contains(g_lastDDLPath, "mp/PlayerData/UnlockTokens") || contains(g_lastDDLName, "UnlockTokens"))
+        isTokenField = true;
+
+    if (isTokenField)
+    {
+        static int logTokenReads = 0;
+        if (logTokenReads++ < 20)
+        {
+            ALOG("DDL_GetUInt override: name=%s path=%s -> 999", g_lastDDLName, g_lastDDLPath);
+        }
+        return 999;
+    }
+
+    uint64_t result = MDT_ORIGINAL(DDL_GetUInt_hook, (param_1, param_2));
+    static int logCount = 0;
+    if (logCount++ < 20)
+    {
+        ALOG("DDL_GetUInt: name=%s path=%s result=%llu", g_lastDDLName, g_lastDDLPath, result);
+    }
     return result;
 #else
     return MDT_ORIGINAL(DDL_GetUInt_hook, (param_1, param_2));
 #endif
 }
 
-MDT_Define_FASTCALL(REBASE(0x25E7290), DDL_SetUInt_hook, uint64_t, (char* param_1, uint64_t* param_2, uint64_t value))
-{
-#if DWINVENTORY_UNLOCK_ALL
-    static int logCount = 0;
-    if (logCount++ < 30)
-    {
-        ALOG("DDL_SetUInt called: value = %llu", value);
-    }
-#endif
-    return MDT_ORIGINAL(DDL_SetUInt_hook, (param_1, param_2, value));
-}
+// Temporarily disable SetUInt hook to improve stability
+// MDT_Define_FASTCALL(REBASE(0x25E7290), DDL_SetUInt_hook, uint64_t, (char* param_1, uint64_t* param_2, uint64_t value))
+// {
+// #if DWINVENTORY_UNLOCK_ALL
+//     static int logCount = 0;
+//     if (logCount++ < 10)
+//     {
+//         ALOG("DDL_SetUInt: name=%s path=%s value=%llu", g_lastDDLName, g_lastDDLPath, value);
+//     }
+// #endif
+//     return MDT_ORIGINAL(DDL_SetUInt_hook, (param_1, param_2, value));
+// }
 
 MDT_Define_FASTCALL(REBASE(0x1FA52B0), LiveStats_Core_GetDDLContext_hook, uint64_t, (uint32_t ControllerIndex, int mode))
 {
@@ -1800,10 +1888,9 @@ void add_prehooks()
     MDT_Activate(FS_FindXZone_hook);
     
     // DDL hooks for inventory unlock (MS Store)
-    MDT_Activate(DDL_MoveToName_hook);
-    MDT_Activate(DDL_MoveToPath_hook);
+    // MDT_Activate(DDL_MoveToName_hook); // disabled to isolate crash
+    // MDT_Activate(DDL_MoveToPath_hook); // disabled to isolate crash
     MDT_Activate(DDL_GetUInt_hook);
-    MDT_Activate(DDL_SetUInt_hook);
     MDT_Activate(LiveStats_Core_GetDDLContext_hook);
     
     MDT_Activate(LiveStats_AreStatsDeltasValid_hook);

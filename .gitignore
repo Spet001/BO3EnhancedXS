@@ -35,6 +35,7 @@
 /bin
 /steam
 /sdk
+*/bin/
 
 # vs bloat
 *.iobj
@@ -43,3 +44,11 @@
 *.ilog
 *.tlog
 *.log
+
+# Python analysis scripts (contain sensitive filepaths)
+analyze_ghidra.py
+analyze_unlocks_detailed.py
+find_unlock_function.py
+extract_critical_functions.py
+generate_summary.py
+
