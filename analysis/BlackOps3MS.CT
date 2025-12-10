@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<CheatTable CheatEngineTableVersion="46">
+  <CheatEntries>
+    <CheatEntry>
+      <ID>0</ID>
+      <Description>"Gunsmith Cammo"</Description>
+      <VariableType>4 Bytes</VariableType>
+      <Address>188A4210440</Address>
+    </CheatEntry>
+    <CheatEntry>
+      <ID>1</ID>
+      <Description>"Gunsmith Cammo(change it too)"</Description>
+      <VariableType>4 Bytes</VariableType>
+      <Address>BlackOps3MS.exe+1874DE58</Address>
+    </CheatEntry>
+    <CheatEntry>
+      <ID>2</ID>
+      <Description>"Zombies Level1?"</Description>
+      <VariableType>4 Bytes</VariableType>
+      <Address>193D0FAA314</Address>
+    </CheatEntry>
+    <CheatEntry>
+      <ID>3</ID>
+      <Description>"Zombies Level2?"</Description>
+      <VariableType>4 Bytes</VariableType>
+      <Address>193D0FAA4B8</Address>
+    </CheatEntry>
+  </CheatEntries>
+  <UserdefinedSymbols/>
+</CheatTable>
