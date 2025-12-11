@@ -147,7 +147,7 @@
 
 KEY INSIGHT:
 The token system uses a DDL layer that can be hooked, BUT it's backed by Xbox Games Runtime
-validation. Simply returning 999 from DDL_GetUInt won't work because xgameruntime.dll checks
+validation maybe?. Simply returning 999 from DDL_GetUInt won't work because xgameruntime.dll checks
 the backend database before accepting items.
 
 SOLUTION DIRECTION:

@@ -25,6 +25,31 @@
       <VariableType>4 Bytes</VariableType>
       <Address>193D0FAA4B8</Address>
     </CheatEntry>
+    <CheatEntry>
+      <ID>4</ID>
+      <Description>"Zombies Cammo"</Description>
+      <ShowAsSigned>0</ShowAsSigned>
+      <VariableType>4 Bytes</VariableType>
+      <Address>BlackOps3MS.exe+18742580</Address>
+    </CheatEntry>
+    <CheatEntry>
+      <ID>5</ID>
+      <Description>"Zombies Cammo (change it too)"</Description>
+      <VariableType>4 Bytes</VariableType>
+      <Address>1C11A86B900</Address>
+    </CheatEntry>
+    <CheatEntry>
+      <ID>6</ID>
+      <Description>"Gunsmith Cammo2"</Description>
+      <VariableType>4 Bytes</VariableType>
+      <Address>1C11A86B900</Address>
+    </CheatEntry>
+    <CheatEntry>
+      <ID>7</ID>
+      <Description>"Gunsmith Cammo2 (change it too)"</Description>
+      <VariableType>4 Bytes</VariableType>
+      <Address>BlackOps3MS.exe+187419F0</Address>
+    </CheatEntry>
   </CheatEntries>
   <UserdefinedSymbols/>
 </CheatTable>
