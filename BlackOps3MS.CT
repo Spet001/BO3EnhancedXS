@@ -50,6 +50,54 @@
       <VariableType>4 Bytes</VariableType>
       <Address>BlackOps3MS.exe+187419F0</Address>
     </CheatEntry>
+    <CheatEntry>
+      <ID>8</ID>
+      <Description>"Liquid Divinium"</Description>
+      <VariableType>4 Bytes</VariableType>
+      <Address>BlackOps3MS.exe+B60A1C4</Address>
+    </CheatEntry>
+    <CheatEntry>
+      <ID>9</ID>
+      <Description>"Liquid Divinium (change it too)"</Description>
+      <VariableType>4 Bytes</VariableType>
+      <Address>BlackOps3MS.exe+186FB0B8</Address>
+    </CheatEntry>
+    <CheatEntry>
+      <ID>10</ID>
+      <Description>"CriptoKeys"</Description>
+      <VariableType>4 Bytes</VariableType>
+      <Address>BlackOps3MS.exe+B60A18C</Address>
+    </CheatEntry>
+    <CheatEntry>
+      <ID>11</ID>
+      <Description>"CriptoKeys (change it too)"</Description>
+      <VariableType>4 Bytes</VariableType>
+      <Address>BlackOps3MS.exe+186D2C08</Address>
+    </CheatEntry>
+    <CheatEntry>
+      <ID>12</ID>
+      <Description>"Common SupplyDrop"</Description>
+      <VariableType>4 Bytes</VariableType>
+      <Address>BlackOps3MS.exe+A0B8234</Address>
+    </CheatEntry>
+    <CheatEntry>
+      <ID>13</ID>
+      <Description>"Common SupplyDrop (change it too)"</Description>
+      <VariableType>4 Bytes</VariableType>
+      <Address>BlackOps3MS.exe+186FBB30</Address>
+    </CheatEntry>
   </CheatEntries>
   <UserdefinedSymbols/>
+  <DisassemblerComments>
+    <DisassemblerComment>
+      <Address>"BlackOps3MS.exe"+2CFE7CB</Address>
+      <Comment>200
+</Comment>
+    </DisassemblerComment>
+    <DisassemblerComment>
+      <Address>"BlackOps3MS.exe"+2CFE833</Address>
+      <Comment>200
+</Comment>
+    </DisassemblerComment>
+  </DisassemblerComments>
 </CheatTable>

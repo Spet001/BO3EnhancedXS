@@ -52,3 +52,6 @@ find_unlock_function.py
 extract_critical_functions.py
 generate_summary.py
 
+# Analysis text files (contain memory addresses and sensitive info)
+analysis/*.txt
+

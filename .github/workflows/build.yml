@@ -1,0 +1,68 @@
+name: Build DLLs
+
+on:
+  push:
+    branches: [ master, main, develop ]
+    paths:
+      - '**.cpp'
+      - '**.h'
+      - '**.vcxproj'
+      - '.github/workflows/build.yml'
+  pull_request:
+    branches: [ master, main ]
+
+jobs:
+  build:
+    runs-on: windows-latest
+    
+    strategy:
+      matrix:
+        configuration: [Release, Debug]
+        platform: [x64]
+
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+
+    - name: Setup MSBuild
+      uses: microsoft/setup-msbuild@v1
+      with:
+        msbuild-version: latest
+
+    - name: Restore NuGet packages
+      run: nuget restore T7InternalWS.sln
+
+    - name: Build T7InternalWS
+      run: msbuild T7InternalWS.vcxproj /p:Configuration=${{ matrix.configuration }} /p:Platform=${{ matrix.platform }} /p:PlatformToolset=v143
+
+    - name: Build T7WSBootstrapper
+      run: msbuild T7WSBootstrapper/T7WSBootstrapper.vcxproj /p:Configuration=${{ matrix.configuration }} /p:Platform=${{ matrix.platform }} /p:PlatformToolset=v143
+
+    - name: Upload T7InternalWS DLL
+      uses: actions/upload-artifact@v3
+      if: success()
+      with:
+        name: T7InternalWS-${{ matrix.configuration }}-${{ matrix.platform }}
+        path: T7InternalWS/x64/${{ matrix.configuration }}/T7InternalWS.dll
+        retention-days: 30
+
+    - name: Upload T7WSBootstrapper DLL
+      uses: actions/upload-artifact@v3
+      if: success()
+      with:
+        name: T7WSBootstrapper-${{ matrix.configuration }}-${{ matrix.platform }}
+        path: T7WSBootstrapper/x64/${{ matrix.configuration }}/T7WSBootstrapper.dll
+        retention-days: 30
+
+    - name: Create Release (on tag)
+      uses: softprops/action-gh-release@v1
+      if: startsWith(github.ref, 'refs/tags/')
+      with:
+        files: |
+          T7InternalWS/x64/${{ matrix.configuration }}/T7InternalWS.dll
+          T7WSBootstrapper/x64/${{ matrix.configuration }}/T7WSBootstrapper.dll
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
